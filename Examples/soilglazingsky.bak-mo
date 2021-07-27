@@ -1,0 +1,54 @@
+within solarGreenhouseV2.Examples;
+model soilglazingsky "simplest test of panel, assuming all thermal radiation pases through the panel without reflection or absorbtion"
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature deepSoil(T=Params.deepSoilTemp)
+    "sub soil constant temperature"
+    annotation (Placement(transformation(extent={{-36,-90},{-16,-70}})));
+  Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
+    tableOnFile=true,
+    tableName="tab1",
+    fileName="C:/Users/carlj/Documents/dymolaModels/solcast3monthtestK.txt",
+    columns=1:17)
+    annotation (Placement(transformation(extent={{-164,64},{-144,84}})));
+  parameter greenhouseParameters Params
+    annotation (Placement(transformation(extent={{-162,32},{-142,52}})));
+  parameter physicalConstants Consts
+    annotation (Placement(transformation(extent={{-162,4},{-142,24}})));
+  Modelica.Blocks.Sources.RealExpression realAirTempC(y=combiTimeTable.y[2])
+    annotation (Placement(transformation(extent={{-108,38},{-88,58}})));
+  Modelica.Thermal.HeatTransfer.Celsius.PrescribedTemperature
+    outAirTemperatureC1
+    annotation (Placement(transformation(extent={{-70,36},{-50,56}})));
+  Components.Soil soil(P=Params, C=Consts)
+    annotation (Placement(transformation(extent={{0,-86},{20,-66}})));
+  Components.panel panel(P=Params, C=Consts)
+    annotation (Placement(transformation(extent={{16,18},{36,38}})));
+  Flows.FreeConvection freeConvectionAirToPanel(
+    P=Params,
+    C=Consts,
+    A=Params.floorArea,
+    L=Params.ceilingHeight,
+    phi=0,
+    airIsAboveSurface=false)
+    annotation (Placement(transformation(extent={{28,-8},{48,12}})));
+equation
+  connect(realAirTempC.y, outAirTemperatureC1.T) annotation (Line(points={{-87,
+          48},{-78,48},{-78,46},{-72,46}}, color={0,0,127}));
+  connect(panel.port_a, outAirTemperatureC1.port) annotation (Line(points={{21,29.2},
+          {-24.5,29.2},{-24.5,46},{-50,46}}, color={191,0,0}));
+  connect(deepSoil.port, soil.port_b) annotation (Line(points={{-16,-80},{-4,-80},{
+          -4,-78.6},{3.8,-78.6}}, color={191,0,0}));
+  connect(freeConvectionAirToPanel.heatPort_a, panel.port_b) annotation (Line(
+        points={{29,2},{12,2},{12,24.6},{21,24.6}}, color={191,0,0}));
+  connect(freeConvectionAirToPanel.heatPort_b, soil.port_a) annotation (Line(
+        points={{47,2.2},{52,2.2},{52,-62},{-4,-62},{-4,-71},{3.6,-71}}, color={
+          191,0,0}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
+          Ellipse(
+          extent={{-76,68},{74,-74}},
+          lineColor={28,108,200},
+          fillColor={147,81,6},
+          fillPattern=FillPattern.None), Text(
+          extent={{-52,28},{40,-46}},
+          textColor={28,108,200},
+          textString="test")}), Diagram(coordinateSystem(preserveAspectRatio=false)));
+end soilglazingsky;

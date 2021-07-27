@@ -1,0 +1,92 @@
+within solarGreenhouseV2.Components;
+model CanopyTranspiringOLD
+  "plant leaves and vines with stanghellini transpiration, heat transfer included"
+  parameter solarGreenhouseV2.greenhouseParameters P;
+  parameter solarGreenhouseV2.physicalConstants C;
+
+      /*Modelica.Units.SI.Area effectiveSurfaceArea  "this is the area used when
+  calcualting the radiation heat transfer. I think similar to the south wall 
+  projection, and top area";*/
+
+  Modelica.Thermal.HeatTransfer.Interfaces.HeatPort_a radiationHeatPort
+    "connect to sky and panels with radiation flows" annotation (
+      Placement(transformation(extent={{-8,80},{12,100}}),
+        iconTransformation(extent={{-8,80},{12,100}})));
+  input Interfaces.PAR_Input par_I annotation (Placement(transformation(
+          extent={{-76,-32},{-36,8}})));
+
+  input Interfaces.NIR_Input nir_I annotation (Placement(transformation(extent={{-76,32},{-36,
+            72}}), iconTransformation(extent={{-76,32},{-36,72}})));
+  Interfaces.WaterMassPort_a waterMassPort
+    "attach to air without a flow model" annotation (Placement(
+        transformation(extent={{26,-20},{46,0}}),
+        iconTransformation(extent={{26,-20},{46,0}})));
+  Modelica.Thermal.HeatTransfer.Interfaces.HeatPort_a airHeatPort
+    "attach to air without a flow model " annotation (Placement(
+        transformation(extent={{24,20},{44,40}}),
+        iconTransformation(extent={{24,20},{44,40}})));
+
+  parameter Modelica.Units.SI.Area floorArea = P.floorArea;
+  Modelica.Units.SI.HeatFlowRate LE "latent energy";
+  Modelica.Units.SI.HeatFlowRate R "radiation, sum of pAR,NIR,and Thermal absorbed/emited";
+  Modelica.Units.SI.HeatFlowRate J "heat from or to heat capacitance of plants";
+  Modelica.Units.SI.HeatFlowRate H "heat convected from plants to air";
+
+  Modelica.Units.SI.HeatCapacity Cp "assuming all specific heat comes from water in plants";
+  parameter Real Transparency =  P.cropTransparency "how much light gets though. In general this is 
+  dependent on incoming light angle and LAI, but I'll treat is as a constant for now
+  REPLACE this later with extinction coeficent";
+  Real AbsorbtionPAR "from 1-0 , how much incident PAR is absorbed by canopy";
+  Real AbsorbtionNIR "from 1-0 , how much incident NIR is absorbed by canopy";
+
+  parameter Modelica.Units.SI.Emissivity  Emissivity =  P.cropEmissivity "FIR emissivity of leaves";
+  input Real LAI "leaf area index";
+  input Modelica.Units.SI.Mass dryMass "dry mass of all the plants per m2 floor area";
+
+  Modelica.Units.SI.Mass freshMass "fresh mass of plants per m2 floor area, assuming 75% moisture";
+  Modelica.Units.SI.Temperature T;
+  input Real re "stanghellini resistance for convection";
+  input Real ri "stanghellini internal resistance of water evaporation";
+  Real delta "slope of saturated vapour pressure";
+  Real alpha "1 + (delta/psychrometricConstant) + (ri/re)";
+  Real gamma;
+
+equation
+  //TODO, fix these to a fucntion of LAI
+  AbsorbtionPAR = 1-P.cropTransparency;
+  AbsorbtionNIR = 1-P.cropTransparency;
+
+  alpha = 1 + (delta/C.psychrometricConstant) + (ri/re);
+  delta =
+    solarGreenhouseV2.Functions.slopeOfSaturatedVapourPressure(T);
+  gamma = C.psychrometricConstant;
+
+  //the par_I and nir_I are defined as light incident on canopy per m2 floor area.
+  //R is always positive or 0
+  R = radiationHeatPort.Q_flow + floorArea*par_I*AbsorbtionPAR + floorArea*nir_I*AbsorbtionNIR;
+
+  freshMass = dryMass/0.15;
+  Cp = floorArea*C.waterSpecificHeatCapacity*freshMass*0.75 "assuming all specific heat comes from water in plants";
+  //when the teperature is rising, J is negative, heat is going into warming the leaves
+  J = -1*der(T)*Cp;
+
+  //H is a loss of heat when T is bigger than Tair, but it can go the other way
+  H = -2*LAI*C.airDensity*C.airSpecificHeatCapacity*( T - airHeatPort.T)/re; //stanghellini1987 3.2
+
+  //LE is always negative, positive would be condensation on leaves, which is rare/ impossible/ no considered in model
+  alpha*LE = min(0, -1*((delta/gamma)*(R + J) + (2*LAI*C.airDensity
+    *C.airSpecificHeatCapacity)*(
+    solarGreenhouseV2.Functions.saturatedVapourPressure(T) -
+    waterMassPort.VP)/(gamma*re)));
+    // function of T and other stuff , 3.32 stanghellini1987
+
+  //note the sign convention of R is not the same as stanghellini, her R is my -R
+  0 =LE+R+J+H; // delta*R/(gamma*alpha) + J*delta/(gamma*alpha) + ( H/alpha);
+
+  airHeatPort.Q_flow = LE +H;
+
+  radiationHeatPort.T = T;
+
+  waterMassPort.MV_flow = -LE/C.lambda;
+
+end CanopyTranspiringOLD;

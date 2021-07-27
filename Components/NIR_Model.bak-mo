@@ -1,0 +1,203 @@
+within solarGreenhouseV2.Components;
+model NIR_Model
+     parameter solarGreenhouseV2.greenhouseParameters P;
+     parameter solarGreenhouseV2.physicalConstants C;
+
+  input Modelica.Units.SI.HeatFlux Dhi;
+  input Modelica.Units.SI.HeatFlux Dni;
+  input Modelica.Units.SI.Angle azimuth;
+  input Modelica.Units.SI.Angle zenith;
+  input Real canopyTransmission;
+  input Real blanketFraction;
+  input Real doubleGlazedFraction;
+
+  Interfaces.NIR_output NIR_panel1
+    "NIR absorbed by panel in watts/m2 of panel area"
+    annotation (Placement(transformation(extent={{2,46},{42,86}})));
+  Interfaces.NIR_output NIR_panel2
+    "NIR absorbed by panel in w/m2 of panel area"
+    annotation (Placement(transformation(extent={{2,8},{42,48}})));
+
+  Interfaces.NIR_output NIR_canopy
+    "NIR incident on canopy m/2 of canopy floor area"
+    annotation (Placement(transformation(extent={{2,-22},{42,18}})));
+  Interfaces.NIR_output NIR_soil
+    "NIR absorbed by soil in w/m2 of floor area"
+    annotation (Placement(transformation(extent={{2,-64},{42,-24}})));
+
+protected
+  Real panel1_DirectT_single_glazed "direct light transmitted by panel1";
+  Real panel2_DirectT_single_glazed "direct light transmitted by panel2";
+
+  Real panel1_DiffuseT_single_glazed "diffuse light transmitted by panel1";
+  Real panel2_DiffuseT_single_glazed "difffuse light transmitted by panel2";
+
+  Real panel1_DirectT_double_glazed "direct light transmitted by panel1";
+  Real panel2_DirectT_double_glazed "direct light transmitted by panel2";
+
+  Real panel1_DiffuseT_double_glazed "diffuse light transmitted by panel1";
+  Real panel2_DiffuseT_double_glazed "difffuse light transmitted by panel2";
+
+  Real panel1_transmission_flux;
+  Real panel2_transmission_flux;
+
+  Modelica.Units.SI.HeatFlux DhiNIR = Dhi*C.NIRfractionInsolation;
+  Modelica.Units.SI.HeatFlux DniNIR = Dni*C.NIRfractionInsolation;
+
+  Modelica.Units.SI.HeatFlux groundNIRTotal "this is the NIR shining on the flat ground around the greenhouse";
+
+  Modelica.Units.SI.HeatFlowRate canopyTopIncidentNIR "energy incident on top of canopy";
+  Modelica.Units.SI.HeatFlowRate reflectedTowardCanopyNIR "energy incident on bottom of canopy from floor reflection";
+
+equation
+  NIR_panel1 = blanketFraction*
+    solarGreenhouseV2.Functions.panelIllumination(
+    DniNIR,
+    DhiNIR,
+    P.panelSkyFractions[1],
+    P.panelAzimuths[1],
+    P.panelZeniths[1],
+    azimuth,
+    zenith);                                                                                                                                                                 //NIR absorbed by panel1
+  NIR_panel2 = blanketFraction*
+    solarGreenhouseV2.Functions.panelIllumination(
+    DniNIR,
+    DhiNIR,
+    P.panelSkyFractions[2],
+    P.panelAzimuths[2],
+    P.panelZeniths[2],
+    azimuth,
+    zenith);                                                                                                                                                                //NIR absorbed by panel2
+
+    //NIR hitting the ground around greenhouse, slight over estimation as doesn't include greenhouse shade
+  groundNIRTotal = solarGreenhouseV2.Functions.panelIllumination(
+    DniNIR,
+    DhiNIR,
+    1.0,
+    0,
+    0,
+    azimuth,
+    zenith);
+
+    //-------------PANEL 1
+    //---------------------------Panel 1 single glazed
+  panel1_DirectT_single_glazed = DniNIR*
+    solarGreenhouseV2.Functions.Direct_2interface(
+    P.glazingIndexRefraction,
+    P.panelAzimuths[1],
+    P.panelZeniths[1],
+    azimuth,
+    zenith);
+
+    ///diffuse light from the sky transmitted, plus diffuse light from the ground
+    panel1_DiffuseT_single_glazed =  DhiNIR*P.panelDiffuseTransmissions[1]*P.panelSkyFractions[1]+
+      groundNIRTotal*P.outsideAlbedoNIR*(1-P.panelSkyFractions[1])*P.panelDiffuseTransmissions[1];             //this is fresnel equation calulation
+
+    //---------------------------Panel 1 double glazed
+  panel1_DirectT_double_glazed = DniNIR*
+    solarGreenhouseV2.Functions.Direct_4interface(
+    P.glazingIndexRefraction,
+    P.panelAzimuths[1],
+    P.panelZeniths[1],
+    azimuth,
+    zenith);
+    ///diffuse light from the sky transmitted, plus diffuse light from the ground
+    panel1_DiffuseT_double_glazed =  DhiNIR*P.panelDoubleGlazedDiffuseTransmissions[1]*P.panelSkyFractions[1]+
+      groundNIRTotal*P.outsideAlbedoNIR*(1-P.panelSkyFractions[1])*P.panelDoubleGlazedDiffuseTransmissions[1];             //this is fresnel equation calulation
+
+    //total flux transmitted in panel 1
+    panel1_transmission_flux = (panel1_DirectT_single_glazed +panel1_DiffuseT_single_glazed)*(1 - doubleGlazedFraction) + doubleGlazedFraction*(panel1_DirectT_double_glazed +panel1_DiffuseT_double_glazed);
+
+    //-------------PANEL 2
+    //---------------------------Panel 2 single glazed
+  panel2_DirectT_single_glazed = DniNIR*
+    solarGreenhouseV2.Functions.Direct_2interface(
+    P.glazingIndexRefraction,
+    P.panelAzimuths[2],
+    P.panelZeniths[2],
+    azimuth,
+    zenith);
+
+    ///diffuse light from the sky transmitted, plus diffuse light from the ground
+    panel2_DiffuseT_single_glazed =  DhiNIR*P.panelDiffuseTransmissions[2]*P.panelSkyFractions[2]+
+      groundNIRTotal*P.outsideAlbedoNIR*(1-P.panelSkyFractions[2])*P.panelDiffuseTransmissions[2];             //this is fresnel equation calulation
+
+    //---------------------------Panel 2 double glazed
+  panel2_DirectT_double_glazed = DniNIR*
+    solarGreenhouseV2.Functions.Direct_4interface(
+    P.glazingIndexRefraction,
+    P.panelAzimuths[2],
+    P.panelZeniths[2],
+    azimuth,
+    zenith);
+    ///diffuse light from the sky transmitted, plus diffuse light from the ground
+    panel2_DiffuseT_double_glazed =  DhiNIR*P.panelDoubleGlazedDiffuseTransmissions[2]*P.panelSkyFractions[2]+
+      groundNIRTotal*P.outsideAlbedoNIR*(1-P.panelSkyFractions[2])*P.panelDoubleGlazedDiffuseTransmissions[2];             //this is fresnel equation calulation
+
+    //total flux transmitted in panel 2
+    panel2_transmission_flux = (panel2_DirectT_single_glazed +panel2_DiffuseT_single_glazed)*(1 - doubleGlazedFraction) + doubleGlazedFraction*(panel2_DirectT_double_glazed +panel2_DiffuseT_double_glazed);
+
+//----------------Light inside
+    canopyTopIncidentNIR = (1 - blanketFraction)*(panel1_transmission_flux*P.panelAreas[1]  + panel2_transmission_flux*P.panelAreas[2]);
+    reflectedTowardCanopyNIR = canopyTopIncidentNIR*canopyTransmission*( P.soilAlbedoNIR);
+
+    ///this is light incident on canopy per m2 of floor area
+    NIR_canopy = (canopyTopIncidentNIR + reflectedTowardCanopyNIR)/P.floorArea;
+
+    ///this is light absorbed by soil per m2 of floor area
+    NIR_soil = (1-P.soilAlbedoNIR)*canopyTopIncidentNIR*canopyTransmission/P.floorArea;
+      annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
+            Ellipse(
+              extent={{-62,56},{50,-56}},
+              lineColor={255,207,14},
+              fillColor={255,255,0},
+              fillPattern=FillPattern.Solid,
+              startAngle=0,
+              endAngle=360),
+            Line(
+              points={{-2,88},{-2,66}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{24,58},{36,74}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{44,42},{66,52}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{58,20},{78,22}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{60,2},{84,2}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{58,-16},{80,-22}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{52,-34},{72,-48}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{40,-46},{58,-66}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{18,-58},{26,-78}},
+              color={255,207,14},
+              thickness=1),
+            Line(
+              points={{0,-66},{2,-84}},
+              color={255,207,14},
+              thickness=1)}), Diagram(coordinateSystem(preserveAspectRatio=false),
+            graphics={Rectangle(
+              extent={{-64,78},{8,-38}},
+              lineColor={255,207,14},
+              lineThickness=1,
+              fillColor={255,255,0},
+              fillPattern=FillPattern.Solid)}));
+end NIR_Model;

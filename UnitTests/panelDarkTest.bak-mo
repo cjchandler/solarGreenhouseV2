@@ -1,0 +1,81 @@
+within solarGreenhouseV2.UnitTests;
+model panelDarkTest
+    //I put these parameters in explicitly so that even if I change params so an example it won't mess up this unit test
+  parameter greenhouseParameters Params(
+    deepSoilTemp=279.15,
+    floorArea=1,
+    soilDepth=0.5,
+    soilEmissivity=0.8,
+    soilDensity=1600,
+    soilSpecificHeat=1000,
+    soilThermalConductivity=0.7,
+    glazingThickness=0.0001542,
+    glazingEmissivity=0.4,
+    glazingIndexRefraction=1.52,
+    glazingDensity=900,
+    glazingSpecificHeatCapacity=1500,
+    glazingThermalConductivity=0.4,
+    nPanels=2,
+    panelAreas={1,1},
+    panelAzimuthsDeg={180,180},
+    panelZenithsDeg={90,0},
+    ceilingHeight=1,
+    airVolume=1,
+    cropEmissivity=0.95)
+    annotation (Placement(transformation(extent={{-100,42},{-80,62}})));
+  parameter physicalConstants Consts
+    annotation (Placement(transformation(extent={{-100,66},{-80,86}})));
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature fixedTemperature(T=Params.deepSoilTemp)
+    annotation (Placement(transformation(extent={{-68,-76},{-48,-56}})));
+  Modelica.Thermal.HeatTransfer.Celsius.FixedTemperature skyTemp0c(T=0)
+    annotation (Placement(transformation(extent={{-70,44},{-50,64}})));
+  Components.Soil soil(C = Consts, P = Params)
+    annotation (Placement(transformation(extent={{-30,-66},{-10,-46}})));
+  Modelica.Thermal.HeatTransfer.Components.BodyRadiation bodyRadiation(Gr=Params.floorArea
+        *Params.soilEmissivity*Params.glazingEmissivity*(1 - Params.glazingFIRTransmission))
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-28,-20})));
+  Modelica.Thermal.HeatTransfer.Components.BodyRadiation bodyRadiation2(Gr=Params.floorArea
+        *Params.soilEmissivity*Consts.airEmissivity*Params.glazingFIRTransmission)
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={16,-22})));
+  Modelica.Thermal.HeatTransfer.Components.BodyRadiation bodyRadiation1(Gr=Params.floorArea
+        *Consts.airEmissivity*Params.glazingEmissivity*(1 - Params.glazingFIRTransmission))
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-28,22})));
+  Components.panel panel(
+    P=Params,
+    C=Consts,
+    index=1) annotation (Placement(transformation(extent={{-20,-8},{0,12}})));
+equation
+  /*when time > 200 then
+   assert( soil.port_a.T > panel.heatCapacitor.T and panel.heatCapacitor.T > fixedTemperature.T,  " check");
+  end when;
+  when time > 1e6 then
+   assert(  panel.heatCapacitor.T < 273.15+1.7,  " check assmptote");
+  end when;
+  */
+  connect(fixedTemperature.port, soil.port_b) annotation (Line(points={{-48,-66},{-34,
+          -66},{-34,-58.6},{-26.2,-58.6}}, color={191,0,0}));
+  connect(bodyRadiation.port_a, soil.port_a) annotation (Line(points={{-28,-30},{-28,
+          -42},{-26.4,-42},{-26.4,-51}}, color={191,0,0}));
+  connect(bodyRadiation2.port_a, soil.port_a) annotation (Line(points={{16,-32},{16,
+          -42},{-26.4,-42},{-26.4,-51}}, color={191,0,0}));
+  connect(bodyRadiation2.port_b, skyTemp0c.port)
+    annotation (Line(points={{16,-12},{16,54},{-50,54}}, color={191,0,0}));
+  connect(bodyRadiation1.port_b, skyTemp0c.port)
+    annotation (Line(points={{-28,32},{-28,54},{-50,54}}, color={191,0,0}));
+  connect(bodyRadiation.port_b, panel.port_b)
+    annotation (Line(points={{-28,-10},{-28,-1.4},{-15,-1.4}}, color={191,0,0}));
+  connect(panel.port_a, bodyRadiation1.port_a)
+    annotation (Line(points={{-15,3.2},{-28,3.2},{-28,12}}, color={191,0,0}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+        coordinateSystem(preserveAspectRatio=false)),
+    experiment(StopTime=4320000, __Dymola_Algorithm="Dassl"));
+end panelDarkTest;

@@ -1,0 +1,48 @@
+within solarGreenhouseV2.Examples;
+model soilsky "simple test of soil"
+  parameter greenhouseParameters Params;
+  parameter physicalConstants Consts;
+
+  Components.Soil soil(P=Params, C=Consts)
+       annotation (Placement(transformation(extent={{0,-82},{20,-62}})));
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature deepSoil(T=279.15)
+    "sub soil constant temperature"
+    annotation (Placement(transformation(extent={{-36,-90},{-16,-70}})));
+  Modelica.Thermal.HeatTransfer.Components.BodyRadiation bodyRadiation(Gr=Params.floorArea
+        *Params.soilEmissivity)
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-12,-28})));
+  Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
+    tableOnFile=true,
+    tableName="tab1",
+    fileName="C:/Users/carlj/Documents/dymolaModels/solcast3monthtestP.txt",
+    columns=1:20)
+    annotation (Placement(transformation(extent={{-164,64},{-144,84}})));
+  Modelica.Blocks.Sources.RealExpression realskytempC(y=combiTimeTable.y[18])
+    annotation (Placement(transformation(extent={{-108,66},{-88,86}})));
+
+  Modelica.Thermal.HeatTransfer.Celsius.PrescribedTemperature
+    prescribedTemperature
+    annotation (Placement(transformation(extent={{-58,64},{-38,84}})));
+equation
+  connect(deepSoil.port, soil.port_b) annotation (Line(points={{-16,-80},{-2,-80},
+          {-2,-74.6},{3.8,-74.6}}, color={191,0,0}));
+  connect(bodyRadiation.port_a, soil.port_a)
+    annotation (Line(points={{-12,-38},{-12,-67},{3.6,-67}}, color={191,0,0}));
+  connect(realskytempC.y, prescribedTemperature.T) annotation (Line(points={{-87,76},
+          {-66,76},{-66,74},{-60,74}}, color={0,0,127}));
+  connect(prescribedTemperature.port, bodyRadiation.port_b)
+    annotation (Line(points={{-38,74},{-12,74},{-12,-18}}, color={191,0,0}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
+          Ellipse(
+          extent={{-76,68},{74,-74}},
+          lineColor={28,108,200},
+          fillColor={147,81,6},
+          fillPattern=FillPattern.None), Text(
+          extent={{-52,28},{40,-46}},
+          textColor={28,108,200},
+          textString="test")}), Diagram(coordinateSystem(preserveAspectRatio=false)),
+    experiment(StopTime=1036800, __Dymola_Algorithm="Dassl"));
+end soilsky;

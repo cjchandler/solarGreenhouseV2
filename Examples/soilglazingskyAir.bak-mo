@@ -1,0 +1,112 @@
+within solarGreenhouseV2.Examples;
+model soilglazingskyAir "simple test of glazing"
+  Components.Soil soil(
+    A=Params.floorArea,
+    h=Params.soilDepth,
+    sigma=Params.soilEmissivity,
+    rho=Params.soilDensity,
+    Cp=Params.soilSpecificHeat,
+    soilThermalConductivity=Params.soilThermalConductivity)
+               annotation (Placement(transformation(extent={{0,-82},{20,-62}})));
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature deepSoil(T=Params.deepSoilTemp)
+    "sub soil constant temperature"
+    annotation (Placement(transformation(extent={{-36,-90},{-16,-70}})));
+  Modelica.Thermal.HeatTransfer.Components.BodyRadiation bodyRadiation(Gr=soil.sigma
+        *soil.A)
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-12,-28})));
+  Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
+    tableOnFile=true,
+    tableName="tab1",
+    fileName="C:/Users/carlj/Documents/dymolaModels/solcast3monthtestK.txt",
+    columns=1:17)
+    annotation (Placement(transformation(extent={{-164,64},{-144,84}})));
+  Modelica.Blocks.Sources.RealExpression realskytempK(y=combiTimeTable.y[17])
+    annotation (Placement(transformation(extent={{-108,66},{-88,86}})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedTemperature skyTemperature
+    annotation (Placement(transformation(extent={{-70,66},{-50,86}})));
+  Components.glazing roofGlazing(
+    A=Params.roofGlazingArea,
+    h=Params.glazingThickness,
+    sigma=Params.glazingEmissivity,
+    n=Params.glazingIndexRefraction,
+    rho=Params.glazingDensity,
+    Cp=Params.glazingSpecificHeatCapacity,
+    glazingThermalConductivity=Params.glazingThermalConductivity)
+    annotation (Placement(transformation(extent={{-2,4},{18,24}})));
+  Modelica.Thermal.HeatTransfer.Sources.FixedHeatFlow fixedHeatFlow(Q_flow=0)
+    annotation (Placement(transformation(extent={{48,32},{68,52}})));
+  greenhouseParameters Params
+    annotation (Placement(transformation(extent={{-162,32},{-142,52}})));
+  physicalConstants Consts
+    annotation (Placement(transformation(extent={{-162,4},{-142,24}})));
+  Modelica.Blocks.Sources.RealExpression realAirTempC(y=combiTimeTable.y[2])
+    annotation (Placement(transformation(extent={{-108,38},{-88,58}})));
+  Modelica.Thermal.HeatTransfer.Celsius.PrescribedTemperature
+    outAirTemperatureC1
+    annotation (Placement(transformation(extent={{-70,36},{-50,56}})));
+  Components.dryAir air(V=2) annotation (Placement(transformation(
+          extent={{58,-26},{78,-6}})));
+  Flows.FreeConvection freeConvection(
+    A=Params.floorArea,
+    L=Params.ceilingHeight,
+    phi=0,
+    k=Consts.airThermalconductivity,
+    nu=Consts.airKinematicViscosity,
+    mu=Consts.airDynamicViscosity,
+    Cp=Consts.airSpecificHeatCapacity,
+    Beta=Consts.airThermalExpansionCoef,
+    a=Consts.airThermalDiffusivity)
+    annotation (Placement(transformation(extent={{24,-58},{44,-38}})));
+  Flows.FreeConvection freeConvection1(
+    A=Params.floorArea,
+    L=Params.ceilingHeight,
+    phi=0,
+    airIsAboveSurface=false,
+    k=Consts.airThermalconductivity,
+    nu=Consts.airKinematicViscosity,
+    mu=Consts.airDynamicViscosity,
+    Cp=Consts.airSpecificHeatCapacity,
+    Beta=Consts.airThermalExpansionCoef,
+    a=Consts.airThermalDiffusivity)
+    annotation (Placement(transformation(extent={{72,-58},{92,-38}})));
+  Modelica.Thermal.HeatTransfer.Celsius.FromKelvin fromKelvin
+    annotation (Placement(transformation(extent={{-22,78},{-2,98}})));
+equation
+  connect(deepSoil.port, soil.port_b) annotation (Line(points={{-16,-80},{-2,-80},
+          {-2,-74.6},{3.8,-74.6}}, color={191,0,0}));
+  connect(realskytempK.y, skyTemperature.T)
+    annotation (Line(points={{-87,76},{-72,76}}, color={0,0,127}));
+  connect(skyTemperature.port, bodyRadiation.port_b)
+    annotation (Line(points={{-50,76},{-12,76},{-12,-18}}, color={191,0,0}));
+  connect(bodyRadiation.port_a, soil.port_a)
+    annotation (Line(points={{-12,-38},{-12,-67},{3.6,-67}}, color={191,0,0}));
+  connect(fixedHeatFlow.port, roofGlazing.port_internal) annotation (Line(
+        points={{68,42},{72,42},{72,16.6},{13,16.6}}, color={191,0,0}));
+  connect(realAirTempC.y, outAirTemperatureC1.T) annotation (Line(points={{-87,
+          48},{-78,48},{-78,46},{-72,46}}, color={0,0,127}));
+  connect(roofGlazing.port_a, outAirTemperatureC1.port) annotation (Line(points=
+         {{2.2,16.8},{-44,16.8},{-44,46},{-50,46}}, color={191,0,0}));
+  connect(freeConvection.heatPort_a, bodyRadiation.port_a)
+    annotation (Line(points={{25,-48},{-12,-48},{-12,-38}}, color={191,0,0}));
+  connect(freeConvection.heatPort_b, air.heatPort_a) annotation (Line(points={{
+          43,-47.8},{43,-32.9},{65.6,-32.9},{65.6,-17.2}}, color={191,0,0}));
+  connect(air.heatPort_a, freeConvection1.heatPort_a) annotation (Line(points={
+          {65.6,-17.2},{64,-17.2},{64,-48},{73,-48}}, color={191,0,0}));
+  connect(freeConvection1.heatPort_b, roofGlazing.port_b) annotation (Line(
+        points={{91,-47.8},{96,-47.8},{96,-2},{-6,-2},{-6,10.6},{1.8,10.6}},
+        color={191,0,0}));
+  connect(skyTemperature.T, fromKelvin.Kelvin) annotation (Line(points={{-72,76},
+          {-78,76},{-78,92},{-32,92},{-32,88},{-24,88}}, color={0,0,127}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
+          Ellipse(
+          extent={{-76,68},{74,-74}},
+          lineColor={28,108,200},
+          fillColor={147,81,6},
+          fillPattern=FillPattern.None), Text(
+          extent={{-52,28},{40,-46}},
+          textColor={28,108,200},
+          textString="test")}), Diagram(coordinateSystem(preserveAspectRatio=false)));
+end soilglazingskyAir;

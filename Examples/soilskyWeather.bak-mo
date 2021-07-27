@@ -1,0 +1,54 @@
+within solarGreenhouseV2.Examples;
+model soilskyWeather "simple test of soil"
+  parameter greenhouseParameters Params;
+  parameter physicalConstants Consts;
+
+  Components.Soil soil(P=Params, C=Consts)
+       annotation (Placement(transformation(extent={{6,-56},{26,-36}})));
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature deepSoil(T=279.15)
+    "sub soil constant temperature"
+    annotation (Placement(transformation(extent={{-36,-90},{-16,-70}})));
+  Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
+    tableOnFile=true,
+    tableName="tab1",
+    fileName="C:/Users/carlj/Documents/dymolaModels/solcast3monthtestP.txt",
+    columns=1:20)
+    annotation (Placement(transformation(extent={{-164,64},{-144,84}})));
+  Modelica.Blocks.Sources.RealExpression realskytempC(y=combiTimeTable.y[18])
+    annotation (Placement(transformation(extent={{-108,66},{-88,86}})));
+
+  Components.weatherState weatherState( airTemperatureC = combiTimeTable.y[2], skyTemperatureC = combiTimeTable.y[18])
+    annotation (Placement(transformation(extent={{-164,34},{-144,54}})));
+  Components.Weather weather(P=Params,  ws = weatherState)
+    annotation (Placement(transformation(extent={{-66,48},{-46,68}})));
+  Flows.greyBodyRadiation greyBodyRadiation(
+    epsilon_a=0.1,
+    epsilon_b=0.1,
+    A_a=1,
+    A_b=1,
+    AF=1)
+    annotation (Placement(transformation(extent={{6,10},{26,30}})));
+equation
+  connect(deepSoil.port, soil.port_b) annotation (Line(points={{-16,-80},
+          {0,-80},{0,-48.6},{9.8,-48.6}},
+                                   color={191,0,0}));
+  connect(soil.port_a, weather.port_airTemp) annotation (Line(points={{9.6,-41},
+          {-40,-41},{-40,54.2},{-51,54.2}},
+                                       color={191,0,0}));
+  connect(greyBodyRadiation.port_b, soil.port_a) annotation (Line(
+        points={{26,20},{30,20},{30,-32},{2,-32},{2,-41},{9.6,-41}},
+        color={191,0,0}));
+  connect(greyBodyRadiation.port_a, weather.port_skyTemp)
+    annotation (Line(points={{6,20},{-38,20},{-38,61},{-51,61}},
+        color={191,0,0}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false), graphics={
+          Ellipse(
+          extent={{-76,68},{74,-74}},
+          lineColor={28,108,200},
+          fillColor={147,81,6},
+          fillPattern=FillPattern.None), Text(
+          extent={{-52,28},{40,-46}},
+          textColor={28,108,200},
+          textString="test")}), Diagram(coordinateSystem(preserveAspectRatio=false)),
+    experiment(StopTime=1036800, __Dymola_Algorithm="Dassl"));
+end soilskyWeather;

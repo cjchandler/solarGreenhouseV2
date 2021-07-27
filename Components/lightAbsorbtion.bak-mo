@@ -1,0 +1,27 @@
+within solarGreenhouseV2.Components;
+model lightAbsorbtion
+  "calculate the ammount of light from each panel that is absorbed by canopy and soil, ideally this uses some precomputed ray tracing"
+
+  parameter solarGreenhouseV2.greenhouseParameters P;
+
+  input Modelica.Units.SI.HeatFlowRate[P.n_panels] panels_PAR_transmitted;
+  input Modelica.Units.SI.HeatFlowRate[P.n_panels] panels_NIR_transmitted;
+
+
+  //need to calculate all of these:
+  Modelica.Units.SI.HeatFlowRate NIR_absorbed_canopy;
+  Modelica.Units.SI.HeatFlowRate PAR_absorbed_canopy;
+
+  Modelica.Units.SI.HeatFlowRate NIR_absorbed_soil;
+  Modelica.Units.SI.HeatFlowRate PAR_absorbed_soil;
+
+equation
+  panels_PAR_transmitted*P.panel_canopy_absorptions = PAR_absorbed_canopy;
+  panels_NIR_transmitted*P.panel_canopy_absorptions = NIR_absorbed_canopy;
+
+  panels_PAR_transmitted*P.panel_soil_absorptions = PAR_absorbed_soil;
+  panels_NIR_transmitted*P.panel_soil_absorptions = NIR_absorbed_soil;
+
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false)),
+      Diagram(coordinateSystem(preserveAspectRatio=false)));
+end lightAbsorbtion;

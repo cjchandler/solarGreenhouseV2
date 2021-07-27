@@ -1,0 +1,365 @@
+within solarGreenhouseV2.Examples;
+model PARGreenhouseTranspiration
+  "greenhouse with condensation on panels"
+  Modelica.Thermal.HeatTransfer.Sources.FixedTemperature deepSoil(T=Params.deepSoilTemp)
+    "sub soil constant temperature"
+    annotation (Placement(transformation(extent={{-120,-196},{-100,-176}})));
+  Components.Soil soil(P=Params, C=Consts)
+    annotation (Placement(transformation(extent={{-86,-192},{-66,-172}})));
+  parameter physicalConstants Consts
+    annotation (Placement(transformation(extent={{-222,28},{-202,48}})));
+  parameter greenhouseParameters Params
+    annotation (Placement(transformation(extent={{-224,-2},{-204,18}})));
+
+///Here radiation connections. Everything component is connected to each other, except for air
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_soil_canopy(
+    A_a=Params.floorArea,
+    A_b=Params.floorArea*canopyTranspiring.LAI,
+    AF=(1 - Params.cropTransparency),
+    epsilon_a=Params.soilEmissivity,
+    epsilon_b=Params.cropEmissivity) annotation (Placement(
+        transformation(extent={{-6,-182},{14,-162}})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_soil_panelR(
+    A_a=Params.floorArea,
+    A_b=Params.panelAreas[1],
+    AF=(Params.cropTransparency)*(1 - Params.glazingFIRTransmission),
+    epsilon_a=Params.soilEmissivity,
+    epsilon_b=Params.glazingEmissivity) annotation (Placement(
+        transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-68,-146})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_soil_panelS(
+    A_a=Params.floorArea,
+    A_b=Params.panelAreas[2],
+    AF=(Params.cropTransparency)*(1 - Params.glazingFIRTransmission),
+    epsilon_a=Params.soilEmissivity,
+    epsilon_b=Params.glazingEmissivity) annotation (Placement(
+        transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-84,-146})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_soil_sky(
+    A_a=Params.floorArea,
+    A_b=Params.floorArea,
+    AF=(Params.cropTransparency)*(Params.glazingFIRTransmission),
+    epsilon_a=Params.soilEmissivity,
+    epsilon_b=Consts.airEmissivity) annotation (Placement(
+        transformation(extent={{-6,-190},{14,-170}})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_canopy_panelR(
+    A_a=Params.floorArea*canopyTranspiring.LAI,
+    A_b=Params.panelAreas[1],
+    AF=(Params.cropTransparency)*(Params.glazingFIRTransmission),
+    epsilon_a=Params.cropEmissivity,
+    epsilon_b=Params.glazingEmissivity) annotation (Placement(
+        transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=180,
+        origin={28,-46})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_canopy_panelS(
+    A_a=Params.floorArea*canopyTranspiring.LAI,
+    A_b=Params.panelAreas[2],
+    AF=(Params.cropTransparency)*(Params.glazingFIRTransmission),
+    epsilon_a=Params.cropEmissivity,
+    epsilon_b=Params.glazingEmissivity) annotation (Placement(
+        transformation(extent={{-80,-112},{-60,-92}})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_canopy_sky(
+    A_a=Params.floorArea*canopyTranspiring.LAI,
+    A_b=Params.floorArea,
+    AF=Params.floorArea*canopyTranspiring.LAI*1,
+    epsilon_a=Params.cropEmissivity,
+    epsilon_b=Consts.airEmissivity) annotation (Placement(
+        transformation(extent={{60,-104},{80,-84}})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_panelR_sky(
+    A_a=Params.panelAreas[1],
+    A_b=Params.panelAreas[1],
+    AF=Params.panelAreas[1]*1,
+    epsilon_a=Params.glazingEmissivity,
+    epsilon_b=Consts.airEmissivity) annotation (Placement(
+        transformation(extent={{58,-22},{78,-2}})));
+
+  solarGreenhouseV2.Flows.greyBodyRadiation Rad_panelS_sky(
+    A_a=Params.panelAreas[2],
+    A_b=Params.panelAreas[2],
+    AF=Params.panelAreas[2]*0.5,
+    epsilon_a=Params.glazingEmissivity,
+    epsilon_b=Consts.airEmissivity) annotation (Placement(
+        transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-102,-36})));
+
+///convection flows
+  solarGreenhouseV2.Flows.FreeConvection Convec_soil_air(
+    P=Params,
+    C=Consts,
+    A=Params.floorArea,
+    L=Params.ceilingHeight,
+    phi=0) annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-52,-146})));
+  Flows.FreeConvectionCondensation freeConvectionSouthWall(
+    P=Params,
+    C=Consts,
+    L=Params.ceilingHeight,
+    phi=90,
+    A=southWall.panelArea)  annotation (Placement(transformation(extent={{-76,-94},{-56,
+            -74}})));
+  Flows.FreeConvectionCondensation freeConvectionRoof(
+    P=Params,
+    C=Consts,
+    L=Params.ceilingHeight,
+    phi=0,
+    airIsAboveSurface=false,
+    A = roof.panelArea)  annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=270,
+        origin={-2,-58})));
+  ///direct attachs ( in reality this is a wind forced convection that you could put in later)
+  //panelR to outsideair
+  //panelS to outsideair
+  Components.WeatherFromFile w
+    annotation (Placement(transformation(extent={{-178,174},{-158,194}})));
+  Components.PAR_Model pAR_Model(
+    P=Params,
+    C=Consts,
+    Dni = w.weather.Dni,
+    Dhi = w.weather.Dhi,
+    azimuth = w.weather.azimuth,
+    zenith = w.weather.zenith,
+    canopyTransmission = canopyTranspiring.Transparency,
+    blanketFraction = 0)
+    annotation (Placement(transformation(extent={{-182,148},{-162,168}})));
+
+  Components.NIR_Model nIR_Model(
+    P=Params,
+    C=Consts,
+    Dni = w.weather.Dni,
+    Dhi = w.weather.Dhi,
+    azimuth = w.weather.azimuth,
+    zenith = w.weather.zenith,
+    canopyTransmission = canopyTranspiring.Transparency,
+    blanketFraction = 0)
+    annotation (Placement(transformation(extent={{-180,54},{-160,74}})));
+  Components.wetAir air(AH(displayUnit = "kg/m3", fixed = true, start = 0.000004), C=Consts,P=Params, T(displayUnit = "K")) annotation (Placement(
+        transformation(extent={{-10,-10},{10,10}},
+        rotation=0,
+        origin={-4,-116})));
+  Components.venting venting(P=Params,
+     C=Consts,
+     flowRate = ventingController.ventingFlowRate)   annotation (
+      Placement(transformation(extent={{104,-122},{124,-102}})));
+  Components.perscribedWetAir perscribedWetAir(
+    P=Params,
+    C=Consts,
+    V=1e6,
+    airTemp = w.port_airTemp.T,
+    relativeHumidityPercent = w.weather.relativeHumidityPercent)    annotation (Placement(transformation(extent={{144,-116},{
+            164,-96}})));
+  Components.ventingController ventingController(
+    C=Consts,
+    P=Params,
+    T = air.T,
+    RH = air.RH)
+    annotation (Placement(transformation(extent={{106,-136},{126,
+            -116}})));
+  Components.wetPanel southWall(
+    P=Params,
+    C=Consts,
+    index=2) annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={-92,-74})));
+
+  Components.wetPanel roof(
+    P=Params,
+    C=Consts,
+    index=1) annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=0,
+        origin={2,-30})));
+  Components.CanopyTranspiring canopyTranspiring(
+    P=Params,
+    C=Consts,
+    LAI = 3,
+    dryMass = 0.0)
+    annotation (
+      Placement(transformation(extent={{10,-154},{30,-134}})));
+  Flows.transpirationConvection transpirationConvection(
+    C=Consts,
+    P=Params,
+    R_incident = canopyTranspiring.PARNIR_absorbed,
+    R_absorbed = canopyTranspiring.PARNIR_absorbed,
+    LAI = canopyTranspiring.LAI,
+    R_thermal=-Rad_canopy_sky.Q_flow - Rad_canopy_panelR.Q_flow +
+        Rad_soil_canopy.Q_flow + Rad_canopy_panelS.Q_flow)
+       annotation (Placement(transformation(extent={{28,-156},
+            {48,-136}})));
+equation
+//these are my manual connections
+//annotaed graphical connections
+  connect(deepSoil.port, soil.port_b) annotation (Line(points={{-100,-186},{-92,-186},
+          {-92,-184.6},{-82.2,-184.6}},
+                                     color={191,0,0}));
+  connect(soil.port_a, Rad_soil_canopy.port_a) annotation (Line(points={{-82.4,-177},
+          {-82.4,-172},{-6,-172}}, color={191,0,0}));
+  connect(soil.port_a, Rad_soil_sky.port_a) annotation (Line(points={{-82.4,-177},
+          {-82.4,-172},{-12,-172},{-12,-180},{-6,-180}}, color={191,0,0}));
+  connect(Rad_soil_panelS.port_a, soil.port_a) annotation (Line(points={{-84,-156},
+          {-82,-156},{-82,-166},{-82.4,-166},{-82.4,-177}}, color={191,0,0}));
+  connect(Rad_soil_panelR.port_a, soil.port_a) annotation (Line(points={{-68,-156},
+          {-68,-172},{-82.4,-172},{-82.4,-177}}, color={191,0,0}));
+  connect(Convec_soil_air.heatPort_a, soil.port_a) annotation (Line(points={{-52,
+          -155},{-52,-172},{-82.4,-172},{-82.4,-177}}, color={191,0,0}));
+  connect(Rad_panelR_sky.port_b, Rad_canopy_sky.port_b) annotation (Line(points={{78,-12},
+          {86,-12},{86,-94},{80,-94}},      color={191,0,0}));
+  connect(Rad_canopy_sky.port_b, Rad_soil_sky.port_b) annotation (Line(points={{80,
+          -94},{86,-94},{86,-180},{14,-180}}, color={191,0,0}));
+  connect(w.port_skyTemp, Rad_panelS_sky.port_b) annotation (Line(points={{-163.2,
+          188.2},{-102,188.2},{-102,-26}},
+                                         color={191,0,0}));
+  connect(Rad_panelR_sky.port_b, w.port_skyTemp) annotation (Line(points={{78,-12},
+          {84,-12},{84,188.2},{-163.2,188.2}}, color={191,0,0}));
+  connect(soil.par_I, pAR_Model.PAR_soil) annotation (Line(points={{
+          -77.4,-176},{-124,-176},{-124,153.6},{-169.8,153.6}},
+        color={255,207,14}));
+
+  connect(air.heatPort_a, Convec_soil_air.heatPort_b) annotation (
+      Line(points={{-6.4,-117.2},{-52.2,-117.2},{-52.2,-137}},
+        color={191,0,0}));
+  connect(venting.port_a, air.heatPort_a) annotation (Line(points={{107.8,
+          -112.8},{104,-112.8},{104,-132},{-20,-132},{-20,-117.2},{-6.4,
+          -117.2}},       color={191,0,0}));
+  connect(venting.waterMassPort_a, air.waterMassPort_a) annotation (
+     Line(points={{107.8,-109.4},{53.9,-109.4},{53.9,-117.2},{-1.6,-117.2}},
+        color={0,0,255}));
+  connect(perscribedWetAir.heatPort_a, venting.port_b) annotation (
+      Line(points={{151.6,-107.2},{136.8,-107.2},{136.8,-112.8},{120.6,
+          -112.8}}, color={191,0,0}));
+  connect(perscribedWetAir.waterMassPort_a, venting.waterMassPort_b)
+    annotation (Line(points={{156.4,-107.2},{170,-107.2},{170,-90},{
+          132,-90},{132,-109.2},{120.6,-109.2}}, color={0,0,255}));
+  connect(nIR_Model.NIR_soil, soil.nir_I) annotation (Line(
+      points={{-167.8,59.6},{-167.8,-166.2},{-71.2,-166.2},{-71.2,-176}},
+      color={255,128,0},
+      thickness=0.5));
+
+  connect(freeConvectionRoof.waterMassPort_a, roof.waterMassPort_a)
+    annotation (Line(points={{-4.2,-49.2},{-4.2,-42},{-5.2,-42},{-5.2,
+          -38.6}}, color={0,0,255}));
+  connect(roof.port_b, freeConvectionRoof.heatPort_a) annotation (
+      Line(points={{-3,-33.4},{-2,-33.4},{-2,-49}}, color={191,0,0}));
+  connect(freeConvectionRoof.waterMassPort_b, air.waterMassPort_a)
+    annotation (Line(
+      points={{-4.2,-67},{-4.2,-92.5},{-1.6,-92.5},{-1.6,-117.2}},
+      color={0,0,255},
+      thickness=1));
+  connect(air.heatPort_a, freeConvectionRoof.heatPort_b)
+    annotation (Line(points={{-6.4,-117.2},{-50,-117.2},{-50,-74},{0,
+          -74},{0,-70},{-1.8,-70},{-1.8,-67}}, color={191,0,0}));
+  connect(air.waterMassPort_a, freeConvectionSouthWall.waterMassPort_b)
+    annotation (Line(points={{-1.6,-117.2},{-0.8,-117.2},{-0.8,-86.2},
+          {-57,-86.2}}, color={0,0,255}));
+  connect(freeConvectionSouthWall.heatPort_b, air.heatPort_a)
+    annotation (Line(points={{-57,-83.8},{-50,-83.8},{-50,-117.2},{-6.4,
+          -117.2}}, color={191,0,0}));
+  connect(freeConvectionSouthWall.heatPort_a, southWall.port_b)
+    annotation (Line(points={{-75,-84},{-74,-84},{-74,-78},{-88.6,-78},
+          {-88.6,-79}}, color={191,0,0}));
+  connect(southWall.waterMassPort_a, freeConvectionSouthWall.waterMassPort_a)
+    annotation (Line(points={{-83.4,-81.2},{-78.7,-81.2},{-78.7,-86.2},
+          {-74.8,-86.2}}, color={0,0,255}));
+  connect(Rad_panelS_sky.port_a, southWall.port_a) annotation (Line(
+        points={{-102,-46},{-102,-80.8},{-100.4,-80.8}}, color={191,
+          0,0}));
+  connect(roof.port_a, Rad_panelR_sky.port_a) annotation (Line(
+        points={{-4.8,-21.6},{-4.8,-12},{58,-12}}, color={191,0,0}));
+  connect(w.port_airTemp, southWall.port_a) annotation (Line(points=
+         {{-163.4,183.2},{-163.4,51.6},{-100.4,51.6},{-100.4,-80.8}},
+        color={191,0,0}));
+  connect(w.port_airTemp, roof.port_a) annotation (Line(points={{-163.4,
+          183.2},{-163.4,80.6},{-4.8,80.6},{-4.8,-21.6}}, color={191,
+          0,0}));
+  connect(nIR_Model.NIR_panel1, roof.nir_I) annotation (Line(
+      points={{-167.8,70.6},{-166,70.6},{-166,72},{8,72},{8,-27.8},{
+          8.8,-27.8}},
+      color={255,128,0},
+      thickness=0.5));
+  connect(nIR_Model.NIR_panel2, southWall.nir_I) annotation (Line(
+      points={{-167.8,66.8},{-167.8,68},{-94.2,68},{-94.2,-67.2}},
+      color={255,128,0},
+      thickness=0.5));
+  connect(roof.par_I, pAR_Model.PAR_panel1) annotation (Line(points=
+         {{2.2,-27.8},{2.2,84},{-122,84},{-122,164.6},{-169.8,164.6}},
+        color={255,207,14}));
+  connect(southWall.par_I, pAR_Model.PAR_panel2) annotation (Line(
+        points={{-94.2,-73.8},{-128,-73.8},{-128,160.8},{-169.8,160.8}},
+        color={255,207,14}));
+  connect(Rad_canopy_panelR.port_b, roof.port_b) annotation (Line(
+        points={{18,-46},{18,-42},{-3,-42},{-3,-33.4}}, color={191,0,
+          0}));
+  connect(canopyTranspiring.port_a, transpirationConvection.HeatPort_a)
+    annotation (Line(points={{22,-144},{28,-144}}, color={191,0,0}));
+  connect(canopyTranspiring.waterMassPort, transpirationConvection.MassPort_a)
+    annotation (Line(points={{22,-148.2},{28,-148}}, color={0,0,255}));
+  connect(transpirationConvection.HeatPort_b, air.heatPort_a)
+    annotation (Line(points={{48,-144},{54,-144},{54,-132},{-20,-132},
+          {-20,-117.2},{-6.4,-117.2}}, color={191,0,0}));
+  connect(transpirationConvection.MassPort_b, air.waterMassPort_a)
+    annotation (Line(
+      points={{48,-148},{48,-158},{-2,-158},{-2,-117.2},{-1.6,-117.2}},
+      color={0,0,255},
+      thickness=1));
+
+  connect(Rad_canopy_sky.port_a, canopyTranspiring.port_a)
+    annotation (Line(points={{60,-94},{22,-94},{22,-144}}, color={191,
+          0,0}));
+  connect(canopyTranspiring.port_a, Rad_canopy_panelR.port_a)
+    annotation (Line(points={{22,-144},{22,-94},{44,-94},{44,-46},{38,
+          -46}}, color={191,0,0}));
+  connect(canopyTranspiring.port_a, Rad_canopy_panelS.port_b)
+    annotation (Line(points={{22,-144},{22,-102},{-60,-102}},
+                       color={191,0,0}));
+  connect(Rad_canopy_panelS.port_a, southWall.port_b) annotation (
+      Line(points={{-80,-102},{-82,-102},{-82,-86},{-80,-86},{-80,-79},
+          {-88.6,-79}}, color={191,0,0}));
+  connect(Rad_soil_panelS.port_b, southWall.port_b) annotation (
+      Line(points={{-84,-136},{-84,-118},{-82,-118},{-82,-86},{-80,-86},
+          {-80,-79},{-88.6,-79}}, color={191,0,0}));
+  connect(Rad_soil_panelR.port_b, roof.port_b) annotation (Line(
+        points={{-68,-136},{-68,-34},{-3,-34},{-3,-33.4}}, color={191,
+          0,0}));
+  connect(canopyTranspiring.par_I, pAR_Model.PAR_canopy)
+    annotation (Line(points={{14.4,-145.2},{16,-145.2},{16,157.8},{-169.8,
+          157.8}}, color={255,207,14}));
+  connect(nIR_Model.NIR_canopy, canopyTranspiring.nir_I)
+    annotation (Line(
+      points={{-167.8,63.8},{-167.8,62.9},{14.4,62.9},{14.4,-138.8}},
+      color={255,128,0},
+      thickness=0.5));
+
+  connect(Rad_soil_canopy.port_b, canopyTranspiring.port_a)
+    annotation (Line(points={{14,-172},{16,-172},{16,-156},{8,-156},
+          {8,-132},{22,-132},{22,-144}}, color={191,0,0}));
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false,
+        extent={{-200,-200},{200,200}},
+        grid={2,2}),                                            graphics={
+          Ellipse(
+          extent={{-76,68},{74,-74}},
+          lineColor={28,108,200},
+          fillColor={147,81,6},
+          fillPattern=FillPattern.None), Text(
+          extent={{-52,28},{40,-46}},
+          textColor={28,108,200},
+          textString="test")}), Diagram(coordinateSystem(preserveAspectRatio=false,
+        extent={{-200,-200},{200,200}},
+        grid={2,2})));
+end PARGreenhouseTranspiration;

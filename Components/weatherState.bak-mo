@@ -1,0 +1,9 @@
+within solarGreenhouseV2.Components;
+class weatherState
+  "all the varaibles for weather that can change throughout a simulation"
+
+  Real Dhi;
+
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+        coordinateSystem(preserveAspectRatio=false)));
+end weatherState;

@@ -1,0 +1,11 @@
+within solarGreenhouseV2.Interfaces;
+model fixedNIR "simpleNIR source"
+  parameter Modelica.Units.SI.HeatFlux magNIR "magnitude of NIR heat flux";
+  PAR_output I_nir annotation (Placement(transformation(extent={{-22,-14},
+            {18,26}})));
+equation
+  I_nir = magNIR;
+
+  annotation (Icon(coordinateSystem(preserveAspectRatio=false)),
+      Diagram(coordinateSystem(preserveAspectRatio=false)));
+end fixedNIR;
